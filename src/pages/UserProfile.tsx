@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,60 +10,103 @@ import { Separator } from "@/components/ui/separator";
 import { User, Package, MapPin, Settings } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-// Mock user data
-const mockUser = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-  avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100",
-  joinDate: "January 2024",
-  totalOrders: 12,
-  totalSpent: 1567
-};
-
-// Mock orders data
-const mockOrders = [
-  {
-    id: "ORD-001",
-    date: "2024-01-15",
-    status: "Delivered",
-    total: 299,
-    items: 2
-  },
-  {
-    id: "ORD-002", 
-    date: "2024-01-10",
-    status: "Shipped",
-    total: 189,
-    items: 1
-  },
-  {
-    id: "ORD-003",
-    date: "2024-01-05",
-    status: "Processing",
-    total: 456,
-    items: 3
-  }
-];
-
-// Mock addresses
-const mockAddresses = [
-  {
-    id: "1",
-    name: "Home",
-    address: "123 Main Street, City, State 12345",
-    isDefault: true
-  },
-  {
-    id: "2", 
-    name: "Work",
-    address: "456 Business Ave, Downtown, State 67890",
-    isDefault: false
-  }
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 const UserProfile = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
+  const [user, setUser] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [addresses, setAddresses] = useState([]);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:3000/api/users/me", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data);
+        } else {
+          // Handle error
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (activeTab !== "orders") return;
+      try {
+        const token = localStorage.getItem("token");
+        console.log("UserProfile: Fetching orders with token:", token ? "Token present" : "No token");
+        
+        const response = await fetch("http://localhost:3000/api/orders", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        console.log("UserProfile: Orders response status:", response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("UserProfile: Received orders:", data);
+          setOrders(data);
+        } else {
+          console.error("UserProfile: Failed to fetch orders:", response.status);
+          const errorText = await response.text();
+          console.error("UserProfile: Error response:", errorText);
+        }
+      } catch (error) {
+        console.error("UserProfile: Error fetching orders:", error);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, [activeTab]);
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (activeTab !== "addresses") return;
+      // Assuming an API endpoint for addresses exists, e.g., /api/users/addresses
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:3000/api/users/addresses", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAddresses(data);
+        } else {
+          // Handle error
+        }
+      } catch (error) {
+        console.error("Error fetching addresses:", error);
+      } finally {
+        setLoadingAddresses(false);
+      }
+    };
+
+    fetchAddresses();
+  }, [activeTab]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -81,28 +125,49 @@ const UserProfile = () => {
           {/* User Header */}
           <Card className="mb-8">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-6">
-                <div className="h-20 w-20 rounded-full overflow-hidden bg-muted">
-                  <img
-                    src={mockUser.avatar}
-                    alt={mockUser.name}
-                    className="w-full h-full object-cover"
-                  />
+              {loadingUser ? (
+                <div className="flex items-center gap-6">
+                  <Skeleton className="h-20 w-20 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="ml-auto text-right space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <div className="text-right space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-bold">{mockUser.name}</h1>
-                  <p className="text-muted-foreground">{mockUser.email}</p>
-                  <p className="text-sm text-muted-foreground">Member since {mockUser.joinDate}</p>
+              ) : user ? (
+                <div className="flex items-center gap-6">
+                  <div className="h-20 w-20 rounded-full overflow-hidden bg-muted">
+                    <img
+                      src={user.avatar || "https://via.placeholder.com/150"}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <h1 className="text-2xl font-bold">{user.name} {user.discordUsername && <span className="text-muted-foreground text-lg">({user.discordUsername})</span>}</h1>
+                    <p className="text-muted-foreground">{user.email}</p>
+                    <p className="text-sm text-muted-foreground">Member since {new Date(user.joinDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="ml-auto text-right space-y-2">
+                    <div className="text-sm text-muted-foreground">Total Orders</div>
+                    <div className="text-2xl font-bold">{user.totalOrders || 0}</div>
+                  </div>
+                  <div className="text-right space-y-2">
+                    <div className="text-sm text-muted-foreground">Total Spent</div>
+                    <div className="text-2xl font-bold">${user.totalSpent || 0}</div>
+                  </div>
                 </div>
-                <div className="ml-auto text-right space-y-2">
-                  <div className="text-sm text-muted-foreground">Total Orders</div>
-                  <div className="text-2xl font-bold">{mockUser.totalOrders}</div>
-                </div>
-                <div className="text-right space-y-2">
-                  <div className="text-sm text-muted-foreground">Total Spent</div>
-                  <div className="text-2xl font-bold">${mockUser.totalSpent}</div>
-                </div>
-              </div>
+              ) : (
+                <div>Error loading user data.</div>
+              )}
             </CardContent>
           </Card>
 
@@ -136,58 +201,65 @@ const UserProfile = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" defaultValue="John" />
+                      <Input id="firstName" defaultValue={user?.firstName || ""} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" defaultValue="Doe" />
+                      <Input id="lastName" defaultValue={user?.lastName || ""} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue={mockUser.email} />
+                    <Input id="email" type="email" defaultValue={user?.email || ""} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" type="tel" placeholder="+1 (555) 123-4567" />
+                    <Input id="phone" type="tel" defaultValue={user?.phone || ""} />
                   </div>
                   <Button>Save Changes</Button>
                 </CardContent>
               </Card>
             </TabsContent>
-
             <TabsContent value="orders" className="mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Order History</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {mockOrders.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="space-y-1">
-                          <div className="font-medium">{order.id}</div>
-                          <div className="text-sm text-muted-foreground">{order.date}</div>
+                  {loadingOrders ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-24 w-full" />
+                      <Skeleton className="h-24 w-full" />
+                    </div>
+                  ) : orders.length > 0 ? (
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                        <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="space-y-1">
+                            <div className="font-medium">{order.id}</div>
+                            <div className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</div>
+                          </div>
+                          <div className="text-center">
+                            <Badge className={getStatusColor(order.status)}>
+                              {order.status}
+                            </Badge>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <div className="font-medium">${order.total}</div>
+                            <div className="text-sm text-muted-foreground">{order.items.length} items</div>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
+                            View Details
+                          </Button>
                         </div>
-                        <div className="text-center">
-                          <Badge className={getStatusColor(order.status)}>
-                            {order.status}
-                          </Badge>
-                        </div>
-                        <div className="text-right space-y-1">
-                          <div className="font-medium">${order.total}</div>
-                          <div className="text-sm text-muted-foreground">{order.items} items</div>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground">No orders found.</div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
-
             <TabsContent value="addresses" className="mt-6">
               <Card>
                 <CardHeader>
@@ -197,29 +269,37 @@ const UserProfile = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {mockAddresses.map((address) => (
-                      <div key={address.id} className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{address.name}</h3>
-                            {address.isDefault && (
-                              <Badge variant="secondary">Default</Badge>
-                            )}
+                  {loadingAddresses ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-24 w-full" />
+                      <Skeleton className="h-24 w-full" />
+                    </div>
+                  ) : addresses.length > 0 ? (
+                    <div className="space-y-4">
+                      {addresses.map((address) => (
+                        <div key={address.id} className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{address.name}</h3>
+                              {address.isDefault && (
+                                <Badge variant="secondary">Default</Badge>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm">Edit</Button>
+                              <Button variant="outline" size="sm">Delete</Button>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">Edit</Button>
-                            <Button variant="outline" size="sm">Delete</Button>
-                          </div>
+                          <p className="text-muted-foreground">{address.address}</p>
                         </div>
-                        <p className="text-muted-foreground">{address.address}</p>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground">No addresses found.</div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
-
             <TabsContent value="settings" className="mt-6">
               <Card>
                 <CardHeader>

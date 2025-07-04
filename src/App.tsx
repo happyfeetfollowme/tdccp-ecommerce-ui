@@ -12,6 +12,9 @@ import Checkout from "./pages/Checkout";
 import ShoppingCart from "./pages/ShoppingCart";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
+
+import DiscordAuthCallback from "./pages/DiscordAuthCallback";
+import LoginError from "./pages/LoginError";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,7 +27,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/products/:id" element={<ProductDetails />} />
           <Route path="/profile" element={<UserProfile />} />
           <Route path="/orders/:id" element={<OrderDetails />} />
           <Route path="/order-confirmation" element={<OrderConfirmation />} />
@@ -32,6 +35,8 @@ const App = () => (
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/auth/discord/callback" element={<DiscordAuthCallback />} />
+          <Route path="/login-error" element={<LoginError />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

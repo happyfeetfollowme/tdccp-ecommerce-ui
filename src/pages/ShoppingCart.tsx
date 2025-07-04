@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,53 +6,151 @@ import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, X, ShoppingBag, ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-// Mock cart data
-const initialCartItems = [
-  {
-    id: "1",
-    name: "Premium Wireless Headphones",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100",
-    price: 199,
-    quantity: 1,
-    inStock: true
-  },
-  {
-    id: "2",
-    name: "Smart Fitness Watch",
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100",
-    price: 299,
-    quantity: 2,
-    inStock: true
-  },
-  {
-    id: "3",
-    name: "USB-C Cable",
-    image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=100",
-    price: 29,
-    quantity: 1,
-    inStock: false
-  }
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 const ShoppingCart = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      removeItem(id);
-    } else {
-      setCartItems(items =>
-        items.map(item =>
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        )
-      );
+  const fetchCart = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      const response = await fetch("http://localhost:3000/api/cart", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const itemsWithStock = await Promise.all(
+          (data.items || []).map(async (item) => {
+            try {
+              const productResponse = await fetch(
+                `http://localhost:3000/api/products/${item.productId}`
+              );
+              if (productResponse.ok) {
+                const productData = await productResponse.json();
+                return { ...item, stock: productData.stock };
+              }
+            } catch (e) {
+              console.error(`Failed to fetch stock for ${item.name}`, e);
+            }
+            return { ...item, stock: 0 };
+          })
+        );
+        setCartItems(itemsWithStock);
+      } else {
+        console.error("Failed to fetch cart");
+        setCartItems([]);
+      }
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const removeItem = (id: string) => {
-    setCartItems(items => items.filter(item => item.id !== id));
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const updateQuantity = async (id: string, currentQuantity: number, newQuantity: number) => {
+    const item = cartItems.find(i => i.id === id);
+    if (!item) return;
+
+    if (newQuantity < 1) {
+      await removeItem(id);
+      return;
+    }
+
+    if (newQuantity > item.stock) {
+        toast({
+            variant: "destructive",
+            title: "Not enough stock",
+            description: `Only ${item.stock} items available.`,
+        });
+        return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:3000/api/cart/items/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+
+      if (response.ok) {
+        setCartItems((prevItems) =>
+          prevItems.map((cartItem) =>
+            cartItem.id === id ? { ...cartItem, quantity: newQuantity } : cartItem
+          )
+        );
+        toast({
+          title: "Cart updated",
+          description: "Item quantity has been updated.",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          variant: "destructive",
+          title: "Update failed",
+          description: errorData.message || "Could not update item quantity.",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred.",
+      });
+    }
+  };
+
+  const removeItem = async (id: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:3000/api/cart/items/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+        toast({
+          title: "Item removed",
+          description: "The item has been removed from your cart.",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          variant: "destructive",
+          title: "Removal failed",
+          description: errorData.message || "Could not remove item from cart.",
+        });
+      }
+    } catch (error) {
+      console.error("Error removing item:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred.",
+      });
+    }
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -60,8 +158,51 @@ const ShoppingCart = () => {
   const tax = 0;
   const total = subtotal + shipping + tax;
 
-  const inStockItems = cartItems.filter(item => item.inStock);
-  const outOfStockItems = cartItems.filter(item => !item.inStock);
+  const inStockItems = cartItems.filter(item => item.stock > 0);
+  const outOfStockItems = cartItems.filter(item => item.stock === 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container py-16">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-4 mb-8">
+              <Skeleton className="h-10 w-10" />
+              <Skeleton className="h-8 w-48" />
+            </div>
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <Skeleton className="h-8 w-1/3" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <Skeleton className="h-8 w-1/2" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
+                  </CardContent>
+                </Card>
+                <Skeleton className="h-12 w-full" />
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -131,7 +272,7 @@ const ShoppingCart = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity, item.quantity - 1)}
                               className="h-10 w-10"
                             >
                               <Minus className="h-4 w-4" />
@@ -140,7 +281,7 @@ const ShoppingCart = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity, item.quantity + 1)}
                               className="h-10 w-10"
                             >
                               <Plus className="h-4 w-4" />
@@ -190,7 +331,7 @@ const ShoppingCart = () => {
                           <div className="flex-1 space-y-2">
                             <h3 className="font-medium">{item.name}</h3>
                             <div className="text-lg font-bold">${item.price}</div>
-                            <div className="text-sm text-destructive">Out of Stock</div>
+                            <div className="text-sm text-destructive font-semibold">Out of Stock</div>
                           </div>
 
                           <div className="text-right min-w-[80px]">
@@ -232,7 +373,7 @@ const ShoppingCart = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>{shipping === 0 ? "Free" : `$${shipping}`}</span>
+                    <span>{shipping === 0 ? "Free" : `${shipping}`}</span>
                   </div>
                   {shipping > 0 && (
                     <div className="text-xs text-muted-foreground">

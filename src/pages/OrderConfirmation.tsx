@@ -1,52 +1,81 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Package, Mail, ArrowRight } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-// Mock order data
-const mockOrder = {
-  id: "ORD-001",
-  date: "January 15, 2024",
-  total: 299,
-  subtotal: 279,
-  shipping: 20,
-  tax: 0,
-  estimatedDelivery: "January 18-20, 2024",
-  email: "john.doe@example.com",
-  shippingAddress: {
-    name: "John Doe",
-    address: "123 Main Street",
-    city: "City, State 12345"
-  },
-  items: [
-    {
-      id: "1",
-      name: "Premium Wireless Headphones",
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100",
-      price: 199,
-      quantity: 1
-    },
-    {
-      id: "2",
-      name: "USB-C Cable",
-      image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=100", 
-      price: 29,
-      quantity: 1
-    }
-  ]
-};
+import { Skeleton } from "@/components/ui/skeleton";
 
 const OrderConfirmation = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("orderId");
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Scroll to top on component mount
+    const fetchOrder = async () => {
+      if (!orderId) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setOrder(data);
+        } else {
+          // Handle error
+        }
+      } catch (error) {
+        console.error("Error fetching order:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
     window.scrollTo(0, 0);
-  }, []);
+  }, [orderId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container py-8">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-8">
+              <Skeleton className="h-16 w-16 rounded-full mx-auto mb-4" />
+              <Skeleton className="h-10 w-3/4 mx-auto" />
+              <Skeleton className="h-6 w-1/2 mx-auto mt-2" />
+            </div>
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-64 w-full" />
+              </div>
+              <div className="space-y-6">
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!order) {
+    return <div>Order not found</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,15 +106,15 @@ const OrderConfirmation = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Order Number</span>
-                      <span className="font-medium">{mockOrder.id}</span>
+                      <span className="font-medium">{order.id}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Order Date</span>
-                      <span className="font-medium">{mockOrder.date}</span>
+                      <span className="font-medium">{new Date(order.createdAt).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Estimated Delivery</span>
-                      <span className="font-medium">{mockOrder.estimatedDelivery}</span>
+                      <span className="font-medium">{order.estimatedDelivery}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -98,7 +127,7 @@ const OrderConfirmation = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockOrder.items.map((item) => (
+                    {order.items.map((item) => (
                       <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
                         <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted">
                           <img
@@ -127,12 +156,12 @@ const OrderConfirmation = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="font-medium">{mockOrder.shippingAddress.name}</div>
+                    <div className="font-medium">{order.shippingAddress.name}</div>
                     <div className="text-muted-foreground">
-                      {mockOrder.shippingAddress.address}
+                      {order.shippingAddress.address}
                     </div>
                     <div className="text-muted-foreground">
-                      {mockOrder.shippingAddress.city}
+                      {order.shippingAddress.city}
                     </div>
                   </div>
                 </CardContent>
@@ -148,20 +177,20 @@ const OrderConfirmation = () => {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${mockOrder.subtotal}</span>
+                    <span>${order.subtotal}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>${mockOrder.shipping}</span>
+                    <span>${order.shipping}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${mockOrder.tax}</span>
+                    <span>${order.tax}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span>${mockOrder.total}</span>
+                    <span>${order.total}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -174,7 +203,7 @@ const OrderConfirmation = () => {
                     <span className="font-medium">Confirmation Email</span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    A confirmation email has been sent to {mockOrder.email}
+                    A confirmation email has been sent to {order.email}
                   </p>
                 </CardContent>
               </Card>
@@ -183,7 +212,7 @@ const OrderConfirmation = () => {
               <div className="space-y-3 animate-slide-up" style={{ animationDelay: '0.5s' }}>
                 <Button 
                   className="w-full" 
-                  onClick={() => navigate(`/orders/${mockOrder.id}`)}
+                  onClick={() => navigate(`/orders/${order.id}`)}
                 >
                   Track Your Order
                   <ArrowRight className="h-4 w-4 ml-2" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,27 +10,10 @@ import { ArrowLeft, Truck, CreditCard } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-// Mock cart data
-const mockCartItems = [
-  {
-    id: "1",
-    name: "Premium Wireless Headphones",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100",
-    price: 199,
-    quantity: 1
-  },
-  {
-    id: "2",
-    name: "USB-C Cable",
-    image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=100",
-    price: 29,
-    quantity: 1
-  }
-];
-
 const Checkout = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [cartItems, setCartItems] = useState([]);
   const [shippingInfo, setShippingInfo] = useState({
     firstName: "",
     lastName: "",
@@ -43,7 +26,30 @@ const Checkout = () => {
     country: "United States"
   });
 
-  const subtotal = mockCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  useEffect(() => {
+    const fetchCart = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:3000/api/cart", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCartItems(data.items || []);
+        } else {
+          // Handle error
+        }
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+      }
+    };
+
+    fetchCart();
+  }, []);
+
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = 20;
   const tax = 0;
   const total = subtotal + shipping + tax;
@@ -52,9 +58,27 @@ const Checkout = () => {
     setStep(2);
   };
 
-  const handlePlaceOrder = () => {
-    // Process order and redirect to confirmation
-    navigate("/order-confirmation");
+  const handlePlaceOrder = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:3000/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ shippingInfo })
+      });
+
+      if (response.ok) {
+        const order = await response.json();
+        navigate(`/order-confirmation?orderId=${order.id}`);
+      } else {
+        // Handle error
+      }
+    } catch (error) {
+      console.error("Error placing order:", error);
+    }
   };
 
   return (
@@ -232,7 +256,7 @@ const Checkout = () => {
                     {/* Order Review */}
                     <div className="space-y-4">
                       <h3 className="font-medium">Order Review</h3>
-                      {mockCartItems.map((item) => (
+                      {cartItems.map((item) => (
                         <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
                           <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted">
                             <img
@@ -271,7 +295,7 @@ const Checkout = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    {mockCartItems.map((item) => (
+                    {cartItems.map((item) => (
                       <div key={item.id} className="flex justify-between text-sm">
                         <span>{item.name} x {item.quantity}</span>
                         <span>${item.price * item.quantity}</span>
