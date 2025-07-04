@@ -4,6 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import ProductDetails from "./pages/ProductDetails";
+import UserProfile from "./pages/UserProfile";
+import OrderDetails from "./pages/OrderDetails";
+import OrderConfirmation from "./pages/OrderConfirmation";
+import Checkout from "./pages/Checkout";
+import ShoppingCart from "./pages/ShoppingCart";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminProducts from "./pages/admin/AdminProducts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -16,6 +24,14 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/orders/:id" element={<OrderDetails />} />
+          <Route path="/order-confirmation" element={<OrderConfirmation />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/cart" element={<ShoppingCart />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/admin/products" element={<AdminProducts />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
