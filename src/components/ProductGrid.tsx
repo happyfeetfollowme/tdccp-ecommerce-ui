@@ -1,27 +1,65 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import ProductCard from "./ProductCard";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const useQuery = () => {
+  return new URLSearchParams(useLocation().search);
+}
 
 const ProductGrid = () => {
   const [products, setProducts] = useState([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const loader = useRef(null);
+  const query = useQuery();
+  const search = query.get("search") || "";
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:3000/api/products?page=${page}&pageSize=10&search=${search}`);
+      const data = await response.json();
+      setProducts((prev) => page === 1 ? data.products : [...prev, ...data.products]);
+      setHasMore(data.products.length > 0);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/api/products");
-        const data = await response.json();
-        setProducts(data);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setProducts([]);
+    setPage(1);
+    setHasMore(true);
+  }, [search]);
 
+  useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
+
+  const handleObserver = useCallback((entities) => {
+    const target = entities[0];
+    if (target.isIntersecting && hasMore && !loading) {
+      setPage((prev) => prev + 1);
+    }
+  }, [hasMore, loading]);
+
+  useEffect(() => {
+    const option = {
+      root: null,
+      rootMargin: "20px",
+      threshold: 1.0
+    };
+    const observer = new IntersectionObserver(handleObserver, option);
+    if (loader.current) observer.observe(loader.current);
+
+    return () => {
+      if (loader.current) observer.unobserve(loader.current);
+    };
+  }, [handleObserver]);
 
   return (
     <section className="py-20 bg-background">
@@ -35,32 +73,36 @@ const ProductGrid = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, index) => (
+          {products.map((product, index) => (
+            <div
+              key={`${product.id}-${index}`}
+              className="animate-slide-up"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <ProductCard product={product} />
+            </div>
+          ))}
+        </div>
+        
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+            {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="animate-pulse">
                 <Skeleton className="h-64 w-full rounded-lg" />
                 <Skeleton className="h-6 w-3/4 mt-4" />
                 <Skeleton className="h-4 w-1/2 mt-2" />
               </div>
-            ))
-          ) : (
-            products.map((product, index) => (
-              <div
-                key={product.id}
-                className="animate-slide-up"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <ProductCard product={product} />
-              </div>
-            ))
-          )}
-        </div>
-        
-        <div className="text-center mt-16">
-          <Button variant="outline" size="lg" className="animate-fade-in">
-            View All Products
-          </Button>
-        </div>
+            ))}
+          </div>
+        )}
+
+        <div ref={loader} />
+
+        {!loading && !hasMore && (
+          <div className="text-center mt-16">
+            <p className="text-muted-foreground">You've reached the end.</p>
+          </div>
+        )}
       </div>
     </section>
   );

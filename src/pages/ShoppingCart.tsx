@@ -62,27 +62,29 @@ const ShoppingCart = () => {
     fetchCart();
   }, []);
 
-  const updateQuantity = async (id: string, currentQuantity: number, newQuantity: number) => {
-    const item = cartItems.find(i => i.id === id);
+
+  const updateQuantity = async (productId: string, currentQuantity: number, newQuantity: number) => {
+    const item = cartItems.find(i => i.productId === productId);
     if (!item) return;
 
     if (newQuantity < 1) {
-      await removeItem(id);
+      await removeItem(productId);
       return;
     }
 
     if (newQuantity > item.stock) {
-        toast({
-            variant: "destructive",
-            title: "Not enough stock",
-            description: `Only ${item.stock} items available.`,
-        });
-        return;
+      toast({
+        variant: "destructive",
+        title: "Not enough stock",
+        description: `Only ${item.stock} items available.`,
+      });
+      return;
     }
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:3000/api/cart/items/${id}`, {
+
+      const response = await fetch(`http://localhost:3000/api/cart/items/${productId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -92,11 +94,14 @@ const ShoppingCart = () => {
       });
 
       if (response.ok) {
-        setCartItems((prevItems) =>
-          prevItems.map((cartItem) =>
-            cartItem.id === id ? { ...cartItem, quantity: newQuantity } : cartItem
-          )
-        );
+        setCartItems((prevItems) => {
+          const updated = prevItems.map((cartItem) =>
+            cartItem.productId === productId ? { ...cartItem, quantity: newQuantity } : cartItem
+          );
+          localStorage.setItem("cart", JSON.stringify(updated));
+          window.dispatchEvent(new Event("cart-updated"));
+          return updated;
+        });
         toast({
           title: "Cart updated",
           description: "Item quantity has been updated.",
@@ -119,10 +124,11 @@ const ShoppingCart = () => {
     }
   };
 
-  const removeItem = async (id: string) => {
+  const removeItem = async (productId: string) => {
+    console.log("Removing item with productId:", productId);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:3000/api/cart/items/${id}`, {
+      const response = await fetch(`http://localhost:3000/api/cart/items/${productId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -130,7 +136,12 @@ const ShoppingCart = () => {
       });
 
       if (response.ok) {
-        setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+        setCartItems((prevItems) => {
+          const updated = prevItems.filter((item) => item.productId !== productId);
+          localStorage.setItem("cart", JSON.stringify(updated));
+          window.dispatchEvent(new Event("cart-updated"));
+          return updated;
+        });
         toast({
           title: "Item removed",
           description: "The item has been removed from your cart.",
@@ -252,11 +263,11 @@ const ShoppingCart = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {inStockItems.map((item, index) => (
-                      <div key={item.id}>
+                      <div key={item.productId}>
                         <div className="flex items-center gap-4">
                           <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted">
                             <img
-                              src={item.image}
+                              src={item.imageUrl || '/placeholder.svg'} 
                               alt={item.name}
                               className="w-full h-full object-cover"
                             />
@@ -272,7 +283,7 @@ const ShoppingCart = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.productId, item.quantity, item.quantity - 1)}
                               className="h-10 w-10"
                             >
                               <Minus className="h-4 w-4" />
@@ -281,7 +292,7 @@ const ShoppingCart = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => updateQuantity(item.id, item.quantity, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.productId, item.quantity, item.quantity + 1)}
                               className="h-10 w-10"
                             >
                               <Plus className="h-4 w-4" />
@@ -290,14 +301,14 @@ const ShoppingCart = () => {
 
                           {/* Total Price */}
                           <div className="text-right min-w-[80px]">
-                            <div className="font-bold">${item.price * item.quantity}</div>
+                            <div className="font-bold">${(item.price * item.quantity).toFixed(2)}</div>
                           </div>
 
                           {/* Remove Button */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeItem(item.productId)}
                             className="text-destructive hover:text-destructive"
                           >
                             <X className="h-4 w-4" />
@@ -318,7 +329,7 @@ const ShoppingCart = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {outOfStockItems.map((item, index) => (
-                      <div key={item.id}>
+                      <div key={item.productId}>
                         <div className="flex items-center gap-4 opacity-60">
                           <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted">
                             <img
@@ -335,13 +346,13 @@ const ShoppingCart = () => {
                           </div>
 
                           <div className="text-right min-w-[80px]">
-                            <div className="font-bold line-through">${item.price * item.quantity}</div>
+                            <div className="font-bold line-through">${(item.price * item.quantity).toFixed(2)}</div>
                           </div>
 
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeItem(item.productId)}
                             className="text-destructive hover:text-destructive"
                           >
                             <X className="h-4 w-4" />
@@ -369,11 +380,11 @@ const ShoppingCart = () => {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${subtotal}</span>
+                    <span>${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>{shipping === 0 ? "Free" : `${shipping}`}</span>
+                    <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
                   </div>
                   {shipping > 0 && (
                     <div className="text-xs text-muted-foreground">
@@ -382,12 +393,12 @@ const ShoppingCart = () => {
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${tax}</span>
+                    <span>${tax.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span>${total}</span>
+                    <span>${total.toFixed(2)}</span>
                   </div>
                 </CardContent>
               </Card>

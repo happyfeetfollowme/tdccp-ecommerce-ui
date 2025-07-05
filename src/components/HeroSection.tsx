@@ -19,15 +19,6 @@ const HeroSection = () => {
                 Explore our curated collection of premium products designed for the modern lifestyle. Quality meets innovation.
               </p>
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="hero" size="lg" className="text-lg">
-                Shop Now
-              </Button>
-              <Button variant="outline" size="lg" className="text-white border-white/20 hover:bg-white/10">
-                Learn More
-              </Button>
-            </div>
           </div>
 
           {/* Hero Image */}

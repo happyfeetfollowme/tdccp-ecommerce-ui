@@ -66,6 +66,15 @@ const ProductDetails = () => {
       });
 
       if (response.ok) {
+        // Fetch the updated cart and set it in localStorage
+        const cartResponse = await fetch("http://localhost:3000/api/cart", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (cartResponse.ok) {
+          const cartData = await cartResponse.json();
+          localStorage.setItem("cart", JSON.stringify(cartData.items || []));
+          window.dispatchEvent(new Event("cart-updated"));
+        }
         const addedItem = await response.json();
         console.log(`Added ${quantity} items to cart`);
         toast({

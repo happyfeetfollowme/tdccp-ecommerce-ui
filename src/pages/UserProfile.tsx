@@ -34,8 +34,12 @@ const UserProfile = () => {
         if (response.ok) {
           const data = await response.json();
           setUser(data);
+        } else if (response.status === 401) {
+          // Token expired or missing
+          localStorage.removeItem("token");
+          window.location.href = "http://localhost:3000/api/auth/discord";
         } else {
-          // Handle error
+          // Handle other errors
         }
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -45,7 +49,7 @@ const UserProfile = () => {
     };
 
     fetchUser();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     const fetchOrders = async () => {
