@@ -12,6 +12,7 @@ import Checkout from "./pages/Checkout";
 import ShoppingCart from "./pages/ShoppingCart";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminPortal from "./pages/admin/AdminPortal";
 
 import DiscordAuthCallback from "./pages/DiscordAuthCallback";
 import LoginError from "./pages/LoginError";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/order-confirmation" element={<OrderConfirmation />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/cart" element={<ShoppingCart />} />
+          <Route path="/admin" element={<AdminPortal />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/auth/discord/callback" element={<DiscordAuthCallback />} />

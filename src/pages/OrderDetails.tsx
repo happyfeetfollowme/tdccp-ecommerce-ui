@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,54 +14,59 @@ const OrderDetails = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [editTotal, setEditTotal] = useState("");
+  const [editShippingFee, setEditShippingFee] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         const token = localStorage.getItem("token");
-        console.log("OrderDetails: Fetching order with ID:", id);
-        console.log("OrderDetails: Using token:", token ? "Token present" : "No token");
-        
         const response = await fetch(`http://localhost:3000/api/orders/${id}`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
         });
-        
-        console.log("OrderDetails: Response status:", response.status);
-        
         if (response.ok) {
           const data = await response.json();
-          console.log("OrderDetails: Received order data:", data);
-          // The 'items' property is a JSON string, so we need to parse it.
           if (data && typeof data.items === 'string') {
             try {
               data.items = JSON.parse(data.items);
             } catch (e) {
-              console.error("OrderDetails: Failed to parse order items", e);
-              data.items = []; // Set to empty array on parse failure
+              data.items = [];
             }
           }
           setOrder(data);
-        } else if (response.status === 404) {
-          console.log("OrderDetails: Order not found");
-          setOrder(null);
+          setEditTotal(data.total);
+          setEditShippingFee(data.shippingFee);
         } else {
-          console.error("OrderDetails: Failed to fetch order:", response.status);
-          const errorText = await response.text();
-          console.error("OrderDetails: Error response:", errorText);
           setOrder(null);
         }
       } catch (error) {
-        console.error("OrderDetails: Error fetching order:", error);
         setOrder(null);
       } finally {
         setLoading(false);
       }
     };
-
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:3000/api/users/me", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data);
+        }
+      } catch {}
+    };
     if (id) {
       fetchOrder();
+      fetchUser();
     }
   }, [id]);
 
@@ -95,61 +100,16 @@ const OrderDetails = () => {
     }
   };
 
+  const isAdmin = user && user.role === "ADMIN";
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container py-8">
         <div className="max-w-4xl mx-auto">
           {loading ? (
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-10 w-10" />
-                <div className="space-y-2">
-                  <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-                <Skeleton className="ml-auto h-6 w-20" />
-              </div>
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <Skeleton className="h-6 w-32" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-32 w-full" />
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <Skeleton className="h-6 w-24" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-40 w-full" />
-                    </CardContent>
-                  </Card>
-                </div>
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <Skeleton className="h-6 w-32" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-32 w-full" />
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
+            <div className="space-y-8"> {/* ...existing code... */} </div>
           ) : !order ? (
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold mb-4">Order Not Found</h2>
-              <p className="text-muted-foreground mb-6">The order you're looking for doesn't exist or you don't have permission to view it.</p>
-              <Button onClick={() => navigate(-1)}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Go Back
-              </Button>
-            </div>
+            <div className="text-center py-12"> {/* ...existing code... */} </div>
           ) : (
             <>
               {/* Header */}
@@ -245,13 +205,53 @@ const OrderDetails = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Shipping</span>
-                        <span>${order.shippingFee}</span>
+                        {isAdmin ? (
+                          <input
+                            type="number"
+                            className="border rounded px-2 py-1 w-24"
+                            value={editShippingFee}
+                            onChange={e => setEditShippingFee(e.target.value)}
+                            disabled={saving}
+                          />
+                        ) : (
+                          <span>${order.shippingFee}</span>
+                        )}
                       </div>
                       <Separator />
                       <div className="flex justify-between font-bold">
                         <span>Total</span>
-                        <span>${(order.total + order.shippingFee).toFixed(2)}</span>
+                        <span>${(Number(order.total) + Number(isAdmin ? editShippingFee : order.shippingFee)).toFixed(2)}</span>
                       </div>
+                      {isAdmin && (
+                        <Button
+                          className="w-full mt-2"
+                          disabled={saving}
+                          onClick={async () => {
+                            setSaving(true);
+                            try {
+                              const token = localStorage.getItem("token");
+                              const res = await fetch(`http://localhost:3000/api/admin/orders/${order.id}`, {
+                                method: "PUT",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                  "Authorization": `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                  shippingFee: Number(editShippingFee),
+                                })
+                              });
+                              if (res.ok) {
+                                const updated = await res.json();
+                                setOrder(updated);
+                              }
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                        >
+                          Save Changes
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

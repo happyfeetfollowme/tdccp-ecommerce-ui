@@ -1,14 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, ShoppingCart } from "lucide-react";
+import { Search, User, ShoppingCart, Shield } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAdminStatus } from "@/hooks/use-admin-status";
 import { useEffect, useState } from "react";
 
 const Header = () => {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const { isAdmin } = useAdminStatus();
 
   useEffect(() => {
     function updateCartCount() {
@@ -61,7 +63,14 @@ const Header = () => {
           <div className="flex items-center space-x-2">
             {localStorage.getItem("token") ? (
               <>
-                <Button variant="ghost" size="icon" onClick={() => navigate("/profile")}>
+                {isAdmin && (
+                  <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}
+                    title="Admin Portal"
+                  >
+                    <Shield className="h-4 w-4 text-yellow-500" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => navigate("/profile")}> 
                   <User className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/cart")}> 
