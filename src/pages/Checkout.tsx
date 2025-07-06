@@ -71,8 +71,11 @@ const Checkout = () => {
       });
 
       if (response.ok) {
-        const order = await response.json();
-        navigate(`/order-confirmation?orderId=${order.id}`);
+        // Empty cart in localStorage and update badge
+        localStorage.setItem("cart", JSON.stringify([]));
+        window.dispatchEvent(new Event("cart-updated"));
+        // Redirect to order history (profile page, orders tab)
+        navigate("/profile", { state: { tab: "orders" } });
       } else {
         // Handle error
       }
