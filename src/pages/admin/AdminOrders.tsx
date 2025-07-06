@@ -9,13 +9,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, Edit, Package, DollarSign, Users, TrendingUp } from "lucide-react";
+import { Search, Eye, Edit, Package, DollarSign, Users, TrendingUp, CheckCircle, XCircle } from "lucide-react";
 
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const navigate = useNavigate();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  // Track status changes for each order
+  const [statusEdits, setStatusEdits] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [shippingFee, setShippingFee] = useState("");
@@ -126,7 +128,38 @@ const AdminOrders = () => {
   };
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
-    // TODO: Implement backend update logic
+    setStatusEdits((prev) => ({ ...prev, [orderId]: newStatus }));
+  };
+
+  const handleStatusSubmit = async (orderId: string) => {
+    const token = localStorage.getItem("token");
+    const newStatus = statusEdits[orderId];
+    try {
+      const res = await fetch(`http://localhost:3000/api/admin/orders/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setOrders((orders) => orders.map((o) => o.id === orderId ? { ...o, status: newStatus } : o));
+        setStatusEdits((prev) => {
+          const copy = { ...prev };
+          delete copy[orderId];
+          return copy;
+        });
+      }
+    } catch {}
+  };
+
+  const handleStatusCancel = (orderId: string) => {
+    setStatusEdits((prev) => {
+      const copy = { ...prev };
+      delete copy[orderId];
+      return copy;
+    });
   };
 
   return (
@@ -276,22 +309,42 @@ const AdminOrders = () => {
                             </Button>
                           )}
 
-                              <Select
-                                value={order.status}
-                                onValueChange={(value) => handleStatusChange(order.id, value)}
-                              >
-                                <SelectTrigger className="w-[140px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="PROCESSING">Awaiting Confirmation</SelectItem>
-                                  <SelectItem value="WAITING_FOR_PAYMENT">Awaiting Payment</SelectItem>
-                                  <SelectItem value="PAID">Paid</SelectItem>
-                                  <SelectItem value="SHIPPED">Shipped</SelectItem>
-                                  <SelectItem value="DELIVERED">Delivered</SelectItem>
-                                  <SelectItem value="CANCELED">Cancelled</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={statusEdits[order.id] ?? order.status}
+                                  onValueChange={(value) => handleStatusChange(order.id, value)}
+                                >
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="PROCESSING">Awaiting Confirmation</SelectItem>
+                                    <SelectItem value="WAITING_FOR_PAYMENT">Awaiting Payment</SelectItem>
+                                    <SelectItem value="PAID">Paid</SelectItem>
+                                    <SelectItem value="SHIPPED">Shipped</SelectItem>
+                                    <SelectItem value="DELIVERED">Delivered</SelectItem>
+                                    <SelectItem value="CANCELED">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                {statusEdits[order.id] && statusEdits[order.id] !== order.status && (
+                                  <>
+                                    <button
+                                      className="ml-1 text-green-600 hover:text-green-800"
+                                      title="Submit status change"
+                                      onClick={() => handleStatusSubmit(order.id)}
+                                    >
+                                      <CheckCircle className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      className="ml-1 text-red-600 hover:text-red-800"
+                                      title="Cancel status change"
+                                      onClick={() => handleStatusCancel(order.id)}
+                                    >
+                                      <XCircle className="h-5 w-5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                         </div>
                       </TableCell>
                     </TableRow>

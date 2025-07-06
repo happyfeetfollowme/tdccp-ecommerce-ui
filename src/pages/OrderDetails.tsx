@@ -8,6 +8,7 @@ import { ArrowLeft, Package, Truck, CheckCircle, Clock } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -101,6 +102,7 @@ const OrderDetails = () => {
   };
 
   const isAdmin = user && user.role === "ADMIN";
+  const isUserOrder = user && order && user.id === order.userId;
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -251,6 +253,49 @@ const OrderDetails = () => {
                         >
                           Save Changes
                         </Button>
+                      )}
+                      {/* Cancel Button for user if status is PROCESSING or WAITING_FOR_PAYMENT */}
+                      {isUserOrder && (order.status === 'PROCESSING' || order.status === 'WAITING_FOR_PAYMENT') && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full mt-2">Cancel Order</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to cancel this order? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Go Back</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={async () => {
+                                  setSaving(true);
+                                  try {
+                                    const token = localStorage.getItem("token");
+                                    const res = await fetch(`http://localhost:3000/api/orders/${order.id}`, {
+                                      method: "PUT",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${token}`
+                                      },
+                                      body: JSON.stringify({ status: "CANCELED" })
+                                    });
+                                    if (res.ok) {
+                                      const updated = await res.json();
+                                      setOrder(updated);
+                                    }
+                                  } finally {
+                                    setSaving(false);
+                                  }
+                                }}
+                              >
+                                Confirm Cancel
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </CardContent>
                   </Card>

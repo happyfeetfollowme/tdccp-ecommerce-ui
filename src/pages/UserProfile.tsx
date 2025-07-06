@@ -21,6 +21,35 @@ const UserProfile = () => {
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+
+  const statusMap = {
+    PROCESSING: "Processing",
+    WAITING_FOR_PAYMENT: "Waiting for Payment",
+    PAID: "Paid",
+    SHIPPED: "Shipped",
+    DELIVERED: "Delivered",
+    CANCELED: "Canceled",
+  };
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "DELIVERED": return "bg-green-500";
+      case "SHIPPED": return "bg-blue-500";
+      case "PAID": return "bg-purple-500";
+      case "PROCESSING": return "bg-yellow-500";
+      case "WAITING_FOR_PAYMENT": return "bg-orange-500";
+      case "CANCELED": return "bg-red-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      (order.items && order.items.some(item => item.name.toLowerCase().includes(orderSearch.toLowerCase())));
+    const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -111,15 +140,6 @@ const UserProfile = () => {
 
     fetchAddresses();
   }, [activeTab]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Delivered": return "bg-green-500";
-      case "Shipped": return "bg-blue-500";
-      case "Processing": return "bg-yellow-500";
-      default: return "bg-gray-500";
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -230,14 +250,36 @@ const UserProfile = () => {
                   <CardTitle>Order History</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Search and Filter */}
+                  <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                    <Input
+                      placeholder="Search by Order ID or Product Name..."
+                      value={orderSearch}
+                      onChange={e => setOrderSearch(e.target.value)}
+                      className="sm:w-64"
+                    />
+                    <select
+                      className="border rounded px-2 py-1 text-sm"
+                      value={orderStatusFilter}
+                      onChange={e => setOrderStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="PROCESSING">Processing</option>
+                      <option value="WAITING_FOR_PAYMENT">Waiting for Payment</option>
+                      <option value="PAID">Paid</option>
+                      <option value="SHIPPED">Shipped</option>
+                      <option value="DELIVERED">Delivered</option>
+                      <option value="CANCELED">Canceled</option>
+                    </select>
+                  </div>
                   {loadingOrders ? (
                     <div className="space-y-4">
                       <Skeleton className="h-24 w-full" />
                       <Skeleton className="h-24 w-full" />
                     </div>
-                  ) : orders.length > 0 ? (
+                  ) : filteredOrders.length > 0 ? (
                     <div className="space-y-4">
-                      {orders.map((order) => (
+                      {filteredOrders.map((order) => (
                         <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="space-y-1">
                             <div className="font-medium">{order.id}</div>
@@ -245,7 +287,7 @@ const UserProfile = () => {
                           </div>
                           <div className="text-center">
                             <Badge className={getStatusColor(order.status)}>
-                              {order.status}
+                              {statusMap[order.status] || order.status}
                             </Badge>
                           </div>
                           <div className="text-right space-y-1">
