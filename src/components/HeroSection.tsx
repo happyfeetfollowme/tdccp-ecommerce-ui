@@ -4,12 +4,12 @@ import heroImage from "@/assets/hero-image.jpg";
 const HeroSection = () => {
   return (
     <section className="relative overflow-hidden bg-hero-gradient">
-      <div className="container relative py-24 lg:py-32">
+      <div className="container relative py-16 md:py-24 lg:py-32">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in text-center lg:text-left">
             <div className="space-y-6">
-              <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
                 Discover
                 <span className="block bg-gradient-to-r from-white to-accent bg-clip-text text-transparent">
                   Premium Products

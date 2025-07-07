@@ -163,20 +163,58 @@ const AdminOrders = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-2 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
           <div>
-            <h1 className="text-3xl font-bold">Order Management</h1>
-            <p className="text-muted-foreground">Manage and track all customer orders</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Order Management</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Manage and track all customer orders</p>
           </div>
         </div>
 
+        {/* Mobile Card View */}
+        <div className="block sm:hidden space-y-4">
+          {filteredOrders.length === 0 ? (
+            <Card><CardContent className="py-8 text-center text-muted-foreground">No orders found.</CardContent></Card>
+          ) : filteredOrders.map((order) => (
+            <Card key={order.id}>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Order #{order.id}</span>
+                  <Badge className={getStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge>
+                </div>
+                <div className="text-sm">Customer: <span className="font-medium">{order.customer}</span></div>
+                <div className="text-sm">Date: {order.date}</div>
+                <div className="text-sm">Items: {order.itemsCount}</div>
+                <div className="text-sm">Total: <span className="font-medium">${order.total + (order.shippingFee || 0)}</span></div>
+                <div className="flex gap-2 mt-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm"><Eye className="h-4 w-4" /></Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-xs w-full">
+                      <DialogHeader>
+                        <DialogTitle>Order Details - {order.id}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-2 text-sm">
+                        <div>Customer: {order.customer}</div>
+                        <div>Status: <Badge className={getStatusColor(order.status)}>{order.status}</Badge></div>
+                        <div>Shipping: {order.address}</div>
+                        <div>Order Total: ${order.total}</div>
+                        <div>Shipping Fee: {order.shippingFee ? `$${order.shippingFee}` : "Not set"}</div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)} title="Edit order details"><Edit className="h-4 w-4" /></Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-
-        {/* Orders Table */}
-        <Card>
+        {/* Orders Table (Desktop) */}
+        <Card className="hidden sm:block">
           <CardHeader>
             <CardTitle>Orders</CardTitle>
             <div className="flex flex-col sm:flex-row gap-4">

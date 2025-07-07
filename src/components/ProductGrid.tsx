@@ -62,17 +62,17 @@ const ProductGrid = () => {
   }, [handleObserver]);
 
   return (
-    <section className="py-20 bg-background">
+    <section className="py-12 md:py-20 bg-background">
       <div className="container">
-        <div className="text-center mb-16 animate-fade-in">
-          <h2 className="text-4xl font-bold mb-4">Featured Products</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+        <div className="text-center mb-12 md:mb-16 animate-fade-in">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">Featured Products</h2>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
             Discover our handpicked selection of premium products that combine quality, 
             style, and innovation.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           {products.map((product, index) => (
             <div
               key={`${product.id}-${index}`}
