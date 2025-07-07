@@ -177,8 +177,8 @@ const AdminProducts = () => {
   const categories = [...new Set(mockProducts.map(p => p.category))];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-2 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -298,8 +298,37 @@ const AdminProducts = () => {
           ))}
         </div>
 
-        {/* Products Table */}
-        <Card>
+        {/* Mobile Card View */}
+        <div className="block sm:hidden space-y-4">
+          {filteredProducts.length === 0 ? (
+            <Card><CardContent className="py-8 text-center text-muted-foreground">No products found.</CardContent></Card>
+          ) : filteredProducts.map((product) => (
+            <Card key={product.id}>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex gap-3 items-center">
+                  <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted">
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{product.name}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-1">{product.description}</div>
+                  </div>
+                </div>
+                <div className="text-sm">Category: {product.category}</div>
+                <div className="text-sm">Price: ${product.price}</div>
+                <div className="text-sm">Stock: {product.stock}</div>
+                <div className="text-sm">Status: <Badge className={getStatusColor(getStockStatus(product.stock))}>{getStockStatus(product.stock)}</Badge></div>
+                <div className="flex gap-2 mt-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)}><Edit className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Products Table (Desktop) */}
+        <Card className="hidden sm:block">
           <CardHeader>
             <CardTitle>Products</CardTitle>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -368,93 +397,8 @@ const AdminProducts = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditProduct(product)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Edit Product</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="editName">Product Name</Label>
-                                    <Input
-                                      id="editName"
-                                      value={formData.name}
-                                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label htmlFor="editCategory">Category</Label>
-                                    <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {categories.map(category => (
-                                          <SelectItem key={category} value={category}>{category}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="editPrice">Price ($)</Label>
-                                    <Input
-                                      id="editPrice"
-                                      type="number"
-                                      value={formData.price}
-                                      onChange={(e) => setFormData({...formData, price: e.target.value})}
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label htmlFor="editStock">Stock Quantity</Label>
-                                    <Input
-                                      id="editStock"
-                                      type="number"
-                                      value={formData.stock}
-                                      onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                                    />
-                                  </div>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="editDescription">Description</Label>
-                                  <Textarea
-                                    id="editDescription"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                    rows={3}
-                                  />
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button onClick={handleUpdateProduct} className="flex-1">
-                                    Update Product
-                                  </Button>
-                                  <Button variant="outline" onClick={() => setSelectedProduct(null)} className="flex-1">
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>

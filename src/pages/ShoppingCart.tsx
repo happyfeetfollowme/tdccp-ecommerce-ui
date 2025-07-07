@@ -353,28 +353,28 @@ const ShoppingCart = () => {
                               className="w-full h-full object-cover grayscale"
                             />
                           </div>
-                          
                           <div className="flex-1 space-y-1">
                             <h3 className="font-medium line-clamp-2">{item.name}</h3>
                             <div className="text-md sm:text-lg font-semibold">${item.price}</div>
                             <div className="text-sm text-destructive font-semibold">Out of Stock</div>
                           </div>
-
                           <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
                             <div className="text-right min-w-[70px] sm:min-w-[80px]">
                               <div className="font-semibold sm:font-bold line-through text-md sm:text-base">${(item.price * item.quantity).toFixed(2)}</div>
                             </div>
-
                             <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeItem(item.productId)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeItem(item.productId)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        {index < outOfStockItems.length - 1 && <Separator className="mt-4" />}
+                        {index < outOfStockItems.length - 1 && (
+                          <Separator className="mt-4" />
+                        )}
                       </div>
                     ))}
                   </CardContent>
