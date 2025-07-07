@@ -162,68 +162,68 @@ const ProductDetails = () => {
             />
             {product.isOnSale && <Badge className="absolute top-4 left-4">Sale</Badge>}
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 md:space-y-8">
             <div>
-              <p className="text-sm text-muted-foreground uppercase">{product.category}</p>
-              <h1 className="text-4xl font-bold">{product.name}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider">{product.category}</p>
+              <h1 className="text-3xl sm:text-4xl font-bold mt-1">{product.name}</h1>
             </div>
-            <p className="text-lg text-muted-foreground">{product.description}</p>
-            <div className="flex items-center gap-4">
-              <span className="text-3xl font-bold text-primary">${product.price}</span>
-              {product.originalPrice && <span className="text-xl text-muted-foreground line-through">${product.originalPrice}</span>}
+            <p className="text-base sm:text-lg text-muted-foreground">{product.description}</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl sm:text-3xl font-bold text-primary">${product.price}</span>
+              {product.originalPrice && <span className="text-lg sm:text-xl text-muted-foreground line-through">${product.originalPrice}</span>}
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
-                  <span key={i} className={`text-xl ${i < Math.floor(product.rating) ? "text-yellow-400" : "text-muted-foreground"}`}>★</span>
+                  <span key={i} className={`text-lg sm:text-xl ${i < Math.floor(product.rating) ? "text-yellow-400" : "text-muted-foreground"}`}>★</span>
                 ))}
               </div>
-              <span className="text-sm text-muted-foreground">({product.reviews} reviews)</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">({product.reviews} reviews)</span>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <p className="text-sm font-medium">Quantity:</p>
-              <div className="flex items-center border rounded-md">
+              <div className="flex items-center border rounded-md self-start sm:self-center">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="h-10 w-10"
+                  className="h-9 w-9 sm:h-10 sm:w-10"
                   disabled={quantity <= 1}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
-                <span className="px-4 py-2 min-w-[3rem] text-center">{quantity}</span>
+                <span className="px-3 py-1.5 sm:px-4 sm:py-2 min-w-[2.5rem] sm:min-w-[3rem] text-center text-sm sm:text-base">{quantity}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                  className="h-10 w-10"
+                  className="h-9 w-9 sm:h-10 sm:w-10"
                   disabled={quantity >= product.stock}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">{product.stock} in stock</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</p>
             </div>
 
             {product.stock > 0 ? (
-              <div className="flex gap-4">
-                <Button size="lg" className="flex-1" onClick={handleAddToCart} disabled={product.stock === 0}>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Button size="lg" className="w-full sm:flex-1" onClick={handleAddToCart} disabled={product.stock === 0}>
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Add to Cart
                 </Button>
-                <Button variant="outline" size="lg" className="flex-1" onClick={handleBuyNow} disabled={product.stock === 0}>
+                <Button variant="outline" size="lg" className="w-full sm:flex-1" onClick={handleBuyNow} disabled={product.stock === 0}>
                   Buy Now
                 </Button>
               </div>
             ) : (
-              <Button size="lg" className="flex-1" disabled>
+              <Button size="lg" className="w-full sm:flex-1" disabled>
                 Out of Stock
               </Button>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-2">
               <Button variant="outline" size="icon">
                 <Heart className="h-4 w-4" />
               </Button>
