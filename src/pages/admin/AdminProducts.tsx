@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,13 +16,27 @@ const AdminProducts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     category: "",
     price: "",
     stock: "",
     description: "",
+    walletAddress: "",
   });
+  const [fieldErrors, setFieldErrors] = useState({
+    name: "",
+    price: "",
+    stock: "",
+    walletAddress: "",
+  });
+  const nameRef = useRef<HTMLInputElement>(null);
+  const priceRef = useRef<HTMLInputElement>(null);
+  const stockRef = useRef<HTMLInputElement>(null);
+  const walletRef = useRef<HTMLInputElement>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [images, setImages] = useState<FileList | null>(null);
 
   const fetchProducts = async () => {
@@ -81,6 +95,35 @@ const AdminProducts = () => {
   });
 
   const handleAddProduct = async () => {
+    // Required fields: name, price, stock, walletAddress
+    const errors: any = { name: "", price: "", stock: "", walletAddress: "" };
+    let firstErrorField: string | null = null;
+    if (!formData.name.trim()) {
+      errors.name = "Product Name is required.";
+      firstErrorField = firstErrorField || "name";
+    }
+    if (!formData.price.trim()) {
+      errors.price = "Price is required.";
+      firstErrorField = firstErrorField || "price";
+    }
+    if (!formData.stock.trim()) {
+      errors.stock = "Stock Quantity is required.";
+      firstErrorField = firstErrorField || "stock";
+    }
+    if (!formData.walletAddress.trim()) {
+      errors.walletAddress = "Wallet Address is required.";
+      firstErrorField = firstErrorField || "walletAddress";
+    }
+    setFieldErrors(errors);
+    // Focus the first error field
+    setTimeout(() => {
+      if (firstErrorField === "name" && nameRef.current) nameRef.current.focus();
+      else if (firstErrorField === "price" && priceRef.current) priceRef.current.focus();
+      else if (firstErrorField === "stock" && stockRef.current) stockRef.current.focus();
+      else if (firstErrorField === "walletAddress" && walletRef.current) walletRef.current.focus();
+    }, 0);
+    if (firstErrorField) return;
+
     const data = new FormData();
     data.append('name', formData.name);
     data.append('description', formData.description);
@@ -89,7 +132,9 @@ const AdminProducts = () => {
     if (formData.category) {
       data.append('category', formData.category);
     }
-
+    if (formData.walletAddress) {
+      data.append('walletAddress', formData.walletAddress);
+    }
     if (images) {
       for (let i = 0; i < images.length; i++) {
         data.append('images', images[i]);
@@ -108,8 +153,9 @@ const AdminProducts = () => {
 
       if (response.ok) {
         setIsAddDialogOpen(false);
-        setFormData({ name: "", category: "", price: "", stock: "", description: "" });
+        setFormData({ name: "", category: "", price: "", stock: "", description: "", walletAddress: "" });
         setImages(null);
+        setFieldErrors({ name: "", price: "", stock: "", walletAddress: "" });
         fetchProducts();
       } else {
         const errorData = await response.json();
@@ -129,26 +175,107 @@ const AdminProducts = () => {
       price: product.price.toString(),
       stock: product.stock.toString(),
       description: product.description,
+      walletAddress: product.walletAddress || "",
     });
     setImages(null);
-    // This is where you would open an edit dialog
-    console.log("Editing product (UI not implemented):", product.id);
+    setIsEditDialogOpen(true);
   };
 
-  const handleUpdateProduct = () => {
-    // Update product logic would go here
-    console.log("Updating product:", selectedProduct.id, formData);
-    setSelectedProduct(null);
-    setFormData({ name: "", category: "", price: "", stock: "", description: "" });
-    setImages(null);
+  const handleUpdateProduct = async () => {
+    if (!selectedProduct) return;
+    // Required fields: name, price, stock, walletAddress
+    const errors: any = { name: "", price: "", stock: "", walletAddress: "" };
+    let firstErrorField: string | null = null;
+    if (!formData.name.trim()) {
+      errors.name = "Product Name is required.";
+      firstErrorField = firstErrorField || "name";
+    }
+    if (!formData.price.trim()) {
+      errors.price = "Price is required.";
+      firstErrorField = firstErrorField || "price";
+    }
+    if (!formData.stock.trim()) {
+      errors.stock = "Stock Quantity is required.";
+      firstErrorField = firstErrorField || "stock";
+    }
+    if (!formData.walletAddress.trim()) {
+      errors.walletAddress = "Wallet Address is required.";
+      firstErrorField = firstErrorField || "walletAddress";
+    }
+    setFieldErrors(errors);
+    setTimeout(() => {
+      if (firstErrorField === "name" && nameRef.current) nameRef.current.focus();
+      else if (firstErrorField === "price" && priceRef.current) priceRef.current.focus();
+      else if (firstErrorField === "stock" && stockRef.current) stockRef.current.focus();
+      else if (firstErrorField === "walletAddress" && walletRef.current) walletRef.current.focus();
+    }, 0);
+    if (firstErrorField) return;
+
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('description', formData.description);
+    data.append('price', formData.price);
+    data.append('stock', formData.stock);
+    if (formData.category) {
+      data.append('category', formData.category);
+    }
+    if (formData.walletAddress) {
+      data.append('walletAddress', formData.walletAddress);
+    }
+    if (images) {
+      for (let i = 0; i < images.length; i++) {
+        data.append('images', images[i]);
+      }
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/admin/products/${selectedProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: data,
+      });
+      if (response.ok) {
+        setIsEditDialogOpen(false);
+        setSelectedProduct(null);
+        setFormData({ name: "", category: "", price: "", stock: "", description: "", walletAddress: "" });
+        setImages(null);
+        setFieldErrors({ name: "", price: "", stock: "", walletAddress: "" });
+        fetchProducts();
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to update product:", errorData.error);
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    // Delete product logic
-    console.log("Deleting product:", productId);
-  };
 
   const categories = [...new Set(products.map(p => p.category || "Uncategorized").filter(Boolean))];
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/admin/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        setDeleteDialogOpen(false);
+        setProductToDelete(null);
+        fetchProducts();
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to delete product:", errorData.error);
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-2 sm:p-6">
@@ -173,13 +300,16 @@ const AdminProducts = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Product Name</Label>
+                    <Label htmlFor="name">Product Name<span className="text-red-500 ml-1">*</span></Label>
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) => { setFormData({...formData, name: e.target.value}); setFieldErrors(errors => ({...errors, name: ""})); }}
                       placeholder="Enter product name"
+                      required
+                      ref={nameRef}
                     />
+                    {fieldErrors.name && <div className="text-red-500 text-xs mt-1">{fieldErrors.name}</div>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="category">Category</Label>
@@ -197,24 +327,30 @@ const AdminProducts = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price ($)</Label>
+                    <Label htmlFor="price">Price ($)<span className="text-red-500 ml-1">*</span></Label>
                     <Input
                       id="price"
                       type="number"
                       value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: e.target.value})}
+                      onChange={(e) => { setFormData({...formData, price: e.target.value}); setFieldErrors(errors => ({...errors, price: ""})); }}
                       placeholder="0.00"
+                      required
+                      ref={priceRef}
                     />
+                    {fieldErrors.price && <div className="text-red-500 text-xs mt-1">{fieldErrors.price}</div>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="stock">Stock Quantity</Label>
+                    <Label htmlFor="stock">Stock Quantity<span className="text-red-500 ml-1">*</span></Label>
                     <Input
                       id="stock"
                       type="number"
                       value={formData.stock}
-                      onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                      onChange={(e) => { setFormData({...formData, stock: e.target.value}); setFieldErrors(errors => ({...errors, stock: ""})); }}
                       placeholder="0"
+                      required
+                      ref={stockRef}
                     />
+                    {fieldErrors.stock && <div className="text-red-500 text-xs mt-1">{fieldErrors.stock}</div>}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -228,14 +364,33 @@ const AdminProducts = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="images">Product Images</Label>
+                  <Label htmlFor="walletAddress">Wallet Address<span className="text-red-500 ml-1">*</span></Label>
                   <Input
-                    id="images"
-                    type="file"
-                    multiple
-                    onChange={(e) => setImages(e.target.files)}
-                    accept="image/*"
+                    id="walletAddress"
+                    value={formData.walletAddress}
+                    onChange={(e) => { setFormData({...formData, walletAddress: e.target.value}); setFieldErrors(errors => ({...errors, walletAddress: ""})); }}
+                    placeholder="Enter wallet address"
+                    required
+                    ref={walletRef}
                   />
+                  {fieldErrors.walletAddress && <div className="text-red-500 text-xs mt-1">{fieldErrors.walletAddress}</div>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="images">Product Images</Label>
+                  <label htmlFor="images" className="inline-block cursor-pointer bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors">
+                    Choose Files
+                    <Input
+                      id="images"
+                      type="file"
+                      multiple
+                      onChange={(e) => setImages(e.target.files)}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </label>
+                  {images && images.length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1">{images.length} file(s) selected</div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAddProduct} className="flex-1">
@@ -248,8 +403,120 @@ const AdminProducts = () => {
               </div>
             </DialogContent>
           </Dialog>
+          {/* Edit Product Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Product</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Product Name<span className="text-red-500 ml-1">*</span></Label>
+                    <Input
+                      id="edit-name"
+                      value={formData.name}
+                      onChange={(e) => { setFormData({...formData, name: e.target.value}); setFieldErrors(errors => ({...errors, name: ""})); }}
+                      placeholder="Enter product name"
+                      required
+                      ref={nameRef}
+                    />
+                    {fieldErrors.name && <div className="text-red-500 text-xs mt-1">{fieldErrors.name}</div>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-category">Category</Label>
+                    <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(category => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-price">Price ($)<span className="text-red-500 ml-1">*</span></Label>
+                    <Input
+                      id="edit-price"
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) => { setFormData({...formData, price: e.target.value}); setFieldErrors(errors => ({...errors, price: ""})); }}
+                      placeholder="0.00"
+                      required
+                      ref={priceRef}
+                    />
+                    {fieldErrors.price && <div className="text-red-500 text-xs mt-1">{fieldErrors.price}</div>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-stock">Stock Quantity<span className="text-red-500 ml-1">*</span></Label>
+                    <Input
+                      id="edit-stock"
+                      type="number"
+                      value={formData.stock}
+                      onChange={(e) => { setFormData({...formData, stock: e.target.value}); setFieldErrors(errors => ({...errors, stock: ""})); }}
+                      placeholder="0"
+                      required
+                      ref={stockRef}
+                    />
+                    {fieldErrors.stock && <div className="text-red-500 text-xs mt-1">{fieldErrors.stock}</div>}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Enter product description"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-walletAddress">Wallet Address<span className="text-red-500 ml-1">*</span></Label>
+                  <Input
+                    id="edit-walletAddress"
+                    value={formData.walletAddress}
+                    onChange={(e) => { setFormData({...formData, walletAddress: e.target.value}); setFieldErrors(errors => ({...errors, walletAddress: ""})); }}
+                    placeholder="Enter wallet address"
+                    required
+                    ref={walletRef}
+                  />
+                  {fieldErrors.walletAddress && <div className="text-red-500 text-xs mt-1">{fieldErrors.walletAddress}</div>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-images">Product Images</Label>
+                  <label htmlFor="edit-images" className="inline-block cursor-pointer bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors">
+                    Choose Files
+                    <Input
+                      id="edit-images"
+                      type="file"
+                      multiple
+                      onChange={(e) => setImages(e.target.files)}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </label>
+                  {images && images.length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1">{images.length} file(s) selected</div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleUpdateProduct} className="flex-1">
+                    Save Changes
+                  </Button>
+                  <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedProduct(null); setFormData({ name: "", category: "", price: "", stock: "", description: "", walletAddress: "" }); setImages(null); }} className="flex-1">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
-
+        {/* ...rest of your component's JSX (mobile/desktop views, table, etc.)... */}
         {/* Mobile Card View */}
         <div className="block sm:hidden space-y-4">
           {filteredProducts.length === 0 ? (
@@ -259,7 +526,11 @@ const AdminProducts = () => {
               <CardContent className="p-4 space-y-2">
                 <div className="flex gap-3 items-center">
                   <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted">
-                    <img src={product.images && product.images[0] ? product.images[0] : '/placeholder.svg'} alt={product.name} className="w-full h-full object-cover" />
+                    <img
+                      src={product.imageUrl ? product.imageUrl : '/placeholder.svg'}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
                     <div className="font-medium">{product.name}</div>
@@ -272,7 +543,17 @@ const AdminProducts = () => {
                 <div className="text-sm">Status: <Badge className={getStatusColor(getStockStatus(product.stock))}>{getStockStatus(product.stock)}</Badge></div>
                 <div className="flex gap-2 mt-2">
                   <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)}><Edit className="h-4 w-4" /></Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setProductToDelete(product.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -326,7 +607,7 @@ const AdminProducts = () => {
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted">
                             <img
-                              src={product.images && product.images[0] ? product.images[0] : '/placeholder.svg'}
+                              src={product.imageUrl ? product.imageUrl : '/placeholder.svg'}
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />
@@ -350,7 +631,45 @@ const AdminProducts = () => {
                       <TableCell>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => handleEditProduct(product)}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setProductToDelete(product.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">Are you sure you want to delete this product?</div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => productToDelete && handleDeleteProduct(productToDelete)}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setProductToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
                         </div>
                       </TableCell>
                     </TableRow>
