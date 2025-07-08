@@ -50,7 +50,7 @@ const Checkout = () => {
   }, []);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 20;
+  const shipping = 0; // Shipping fee is $0
   const tax = 0;
   const total = subtotal + shipping + tax;
 
@@ -262,11 +262,15 @@ const Checkout = () => {
                       {cartItems.map((item) => (
                         <div key={item.id} className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg">
                           <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
+                            {item.imageUrl || (item.images && item.images[0]) ? (
+                              <img
+                                src={item.imageUrl || (item.images && item.images[0])}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No Image</div>
+                            )}
                           </div>
                           <div className="flex-1">
                             <h4 className="font-medium text-sm sm:text-base line-clamp-1">{item.name}</h4>
@@ -312,7 +316,7 @@ const Checkout = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>${shipping}</span>
+                    <span>$0</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>

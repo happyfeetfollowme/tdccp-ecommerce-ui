@@ -49,7 +49,7 @@ const AdminOrders = () => {
               total: order.total,
               shippingFee: order.shippingFee,
               itemsCount: Array.isArray(items) ? items.length : 0,
-              address: order.address || "-",
+              shippingInfo: order.shippingInfo || "-",
               items,
             };
           });

@@ -45,12 +45,14 @@ const UserProfile = () => {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
-      (order.items && order.items.some(item => item.name.toLowerCase().includes(orderSearch.toLowerCase())));
-    const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredOrders = orders
+    .filter(order => {
+      const matchesSearch = order.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+        (order.items && order.items.some(item => item.name.toLowerCase().includes(orderSearch.toLowerCase())));
+      const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   useEffect(() => {
     const fetchUser = async () => {

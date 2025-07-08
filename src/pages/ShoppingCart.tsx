@@ -165,7 +165,7 @@ const ShoppingCart = () => {
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = subtotal > 100 ? 0 : 20;
+  const shipping = 0; // Shipping fee is $0
   const tax = 0;
   const total = subtotal + shipping + tax;
 
@@ -400,13 +400,8 @@ const ShoppingCart = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+                    <span>$0</span>
                   </div>
-                  {shipping > 0 && (
-                    <div className="text-xs text-muted-foreground">
-                      Free shipping on orders over $100
-                    </div>
-                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
                     <span>${tax.toFixed(2)}</span>

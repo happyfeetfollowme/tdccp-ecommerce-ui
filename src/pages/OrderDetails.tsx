@@ -243,8 +243,9 @@ const OrderDetails = () => {
                                 })
                               });
                               if (res.ok) {
-                                const updated = await res.json();
-                                setOrder(updated);
+                                // const updated = await res.json();
+                                // setOrder(updated);
+                                navigate('/admin');
                               }
                             } finally {
                               setSaving(false);
