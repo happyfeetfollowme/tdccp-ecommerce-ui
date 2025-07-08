@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,91 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Edit, Trash2, Package, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
-
-// Mock products data
-const mockProducts = [
-  {
-    id: "1",
-    name: "Premium Wireless Headphones",
-    category: "Electronics",
-    price: 199,
-    stock: 15,
-    status: "Active",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100",
-    description: "High-quality wireless headphones with noise cancellation"
-  },
-  {
-    id: "2",
-    name: "Smart Fitness Watch",
-    category: "Wearables",
-    price: 299,
-    stock: 8,
-    status: "Active",
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100",
-    description: "Advanced fitness tracking with heart rate monitoring"
-  },
-  {
-    id: "3",
-    name: "Minimalist Desk Lamp",
-    category: "Home & Living",
-    price: 89,
-    stock: 0,
-    status: "Out of Stock",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
-    description: "Modern LED desk lamp with adjustable brightness"
-  },
-  {
-    id: "4",
-    name: "Leather Messenger Bag",
-    category: "Accessories",
-    price: 159,
-    stock: 23,
-    status: "Active",
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100",
-    description: "Handcrafted leather messenger bag for professionals"
-  },
-  {
-    id: "5",
-    name: "Organic Coffee Beans",
-    category: "Food & Beverage",
-    price: 24,
-    stock: 2,
-    status: "Low Stock",
-    image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=100",
-    description: "Premium organic coffee beans from Ethiopia"
-  }
-];
-
-// Mock stats
-const stats = [
-  {
-    title: "Total Products",
-    value: "156",
-    icon: Package,
-    change: "+12"
-  },
-  {
-    title: "Total Value",
-    value: "$45,678",
-    icon: DollarSign,
-    change: "+8%"
-  },
-  {
-    title: "Low Stock",
-    value: "8",
-    icon: AlertTriangle,
-    change: "-2"
-  },
-  {
-    title: "Categories",
-    value: "12",
-    icon: TrendingUp,
-    change: "+1"
-  }
-];
+import { Search, Plus, Edit, Trash2 } from "lucide-react";
 
 const AdminProducts = () => {
+  const [products, setProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -103,8 +22,40 @@ const AdminProducts = () => {
     price: "",
     stock: "",
     description: "",
-    image: ""
   });
+  const [images, setImages] = useState<FileList | null>(null);
+
+  const fetchProducts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/admin/products', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Admin endpoint returns an array
+        if (Array.isArray(data)) {
+          setProducts(data);
+        } else if (Array.isArray(data.products)) {
+          setProducts(data.products);
+        } else {
+          setProducts([]);
+        }
+      } else {
+        console.error("Failed to fetch products.");
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      setProducts([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -122,25 +73,52 @@ const AdminProducts = () => {
     return "Active";
   };
 
-  const filteredProducts = mockProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.category.toLowerCase().includes(searchTerm.toLowerCase());
+                         (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
-  const handleAddProduct = () => {
-    // Add product logic
-    console.log("Adding product:", formData);
-    setIsAddDialogOpen(false);
-    setFormData({
-      name: "",
-      category: "",
-      price: "",
-      stock: "",
-      description: "",
-      image: ""
-    });
+  const handleAddProduct = async () => {
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('description', formData.description);
+    data.append('price', formData.price);
+    data.append('stock', formData.stock);
+    if (formData.category) {
+      data.append('category', formData.category);
+    }
+
+    if (images) {
+      for (let i = 0; i < images.length; i++) {
+        data.append('images', images[i]);
+      }
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/admin/products', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: data,
+      });
+
+      if (response.ok) {
+        setIsAddDialogOpen(false);
+        setFormData({ name: "", category: "", price: "", stock: "", description: "" });
+        setImages(null);
+        fetchProducts();
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to add product:", errorData.error);
+        // You can use a toast notification here to show the error
+      }
+    } catch (error) {
+      console.error('Error adding product:', error);
+    }
   };
 
   const handleEditProduct = (product: any) => {
@@ -151,22 +129,18 @@ const AdminProducts = () => {
       price: product.price.toString(),
       stock: product.stock.toString(),
       description: product.description,
-      image: product.image
     });
+    setImages(null);
+    // This is where you would open an edit dialog
+    console.log("Editing product (UI not implemented):", product.id);
   };
 
   const handleUpdateProduct = () => {
-    // Update product logic
+    // Update product logic would go here
     console.log("Updating product:", selectedProduct.id, formData);
     setSelectedProduct(null);
-    setFormData({
-      name: "",
-      category: "",
-      price: "",
-      stock: "",
-      description: "",
-      image: ""
-    });
+    setFormData({ name: "", category: "", price: "", stock: "", description: "" });
+    setImages(null);
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -174,7 +148,7 @@ const AdminProducts = () => {
     console.log("Deleting product:", productId);
   };
 
-  const categories = [...new Set(mockProducts.map(p => p.category))];
+  const categories = [...new Set(products.map(p => p.category || "Uncategorized").filter(Boolean))];
 
   return (
     <div className="min-h-screen bg-background p-2 sm:p-6">
@@ -254,12 +228,13 @@ const AdminProducts = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="image">Image URL</Label>
+                  <Label htmlFor="images">Product Images</Label>
                   <Input
-                    id="image"
-                    value={formData.image}
-                    onChange={(e) => setFormData({...formData, image: e.target.value})}
-                    placeholder="https://example.com/image.jpg"
+                    id="images"
+                    type="file"
+                    multiple
+                    onChange={(e) => setImages(e.target.files)}
+                    accept="image/*"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -275,29 +250,6 @@ const AdminProducts = () => {
           </Dialog>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                  </div>
-                  <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <stat.icon className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm">
-                  <span className="text-green-600 font-medium">{stat.change}</span>
-                  <span className="text-muted-foreground ml-1">from last month</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
         {/* Mobile Card View */}
         <div className="block sm:hidden space-y-4">
           {filteredProducts.length === 0 ? (
@@ -307,7 +259,7 @@ const AdminProducts = () => {
               <CardContent className="p-4 space-y-2">
                 <div className="flex gap-3 items-center">
                   <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.images && product.images[0] ? product.images[0] : '/placeholder.svg'} alt={product.name} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <div className="font-medium">{product.name}</div>
@@ -374,7 +326,7 @@ const AdminProducts = () => {
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted">
                             <img
-                              src={product.image}
+                              src={product.images && product.images[0] ? product.images[0] : '/placeholder.svg'}
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />
