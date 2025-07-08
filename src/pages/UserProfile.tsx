@@ -11,6 +11,7 @@ import { User, Package, MapPin, Settings } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
+import UserInitialAvatar from "@/components/ui/avatar";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -169,24 +170,11 @@ const UserProfile = () => {
               ) : user ? (
                 <div className="flex items-center gap-6">
                   <div className="h-20 w-20 rounded-full overflow-hidden bg-muted">
-                    <img
-                      src={user.avatar || "https://via.placeholder.com/150"}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <UserInitialAvatar userName={user.discordUsername} size={80} />
                   </div>
                   <div className="space-y-2">
                     <h1 className="text-2xl font-bold">{user.name} {user.discordUsername && <span className="text-muted-foreground text-lg">({user.discordUsername})</span>}</h1>
-                    <p className="text-muted-foreground">{user.email}</p>
-                    <p className="text-sm text-muted-foreground">Member since {new Date(user.joinDate).toLocaleDateString()}</p>
-                  </div>
-                  <div className="ml-auto text-right space-y-2">
-                    <div className="text-sm text-muted-foreground">Total Orders</div>
-                    <div className="text-2xl font-bold">{user.totalOrders || 0}</div>
-                  </div>
-                  <div className="text-right space-y-2">
-                    <div className="text-sm text-muted-foreground">Total Spent</div>
-                    <div className="text-2xl font-bold">${user.totalSpent || 0}</div>
+                    <p className="text-sm text-muted-foreground">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               ) : (

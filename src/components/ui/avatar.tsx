@@ -1,48 +1,54 @@
-import * as React from "react"
-import * as AvatarPrimitive from "@radix-ui/react-avatar"
+// Custom Avatar for user initials
+import React from "react";
 
-import { cn } from "@/lib/utils"
+export interface UserInitialAvatarProps {
+  userName: string;
+  size?: number;
+  className?: string;
+}
 
-const Avatar = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
-      className
-    )}
-    {...props}
-  />
-))
-Avatar.displayName = AvatarPrimitive.Root.displayName
+const getInitials = (name: string) => {
+  if (!name) return '';
+  const parts = name.split(' ');
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
 
-const AvatarImage = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Image>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    className={cn("aspect-square h-full w-full", className)}
-    {...props}
-  />
-))
-AvatarImage.displayName = AvatarPrimitive.Image.displayName
+const getBackgroundColor = (name: string) => {
+  const colors = [
+    '#673AB7', // Deep Purple
+    '#9C27B0', // Purple
+    '#E91E63', // Pink
+    '#F44336', // Red
+    '#FF9800', // Orange
+    '#FFC107', // Amber
+    '#4CAF50', // Green
+    '#2196F3', // Blue
+    '#03A9F4', // Light Blue
+    '#00BCD4', // Cyan
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash % colors.length);
+  return colors[index];
+};
 
-const AvatarFallback = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Fallback>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Fallback
-    ref={ref}
-    className={cn(
-      "flex h-full w-full items-center justify-center rounded-full bg-muted",
-      className
-    )}
-    {...props}
-  />
-))
-AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName
+const UserInitialAvatar: React.FC<UserInitialAvatarProps> = ({ userName, size = 80, className = "" }) => {
+  const initials = getInitials(userName);
+  const backgroundColor = getBackgroundColor(userName);
+  return (
+    <div
+      className={`flex items-center justify-center rounded-full text-white font-bold select-none ${className}`}
+      style={{ backgroundColor, width: size, height: size, fontSize: size * 0.4 }}
+    >
+      <span>{initials}</span>
+    </div>
+  );
+};
 
-export { Avatar, AvatarImage, AvatarFallback }
+export default UserInitialAvatar;
+
